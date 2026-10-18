@@ -1,0 +1,24 @@
+## Interface: 30300
+## Title: Raukin GDKP
+## Notes: Loot distribution helper developed for GDKP
+## Author: Raukin
+## Version: 3.4
+## SavedVariables: RaukinGDKPPrefs
+
+Compat.lua
+embeds.xml
+RaukinGDKP.lua
+MessageQueue.lua
+CountdownBar.lua
+ItemRow.lua
+SearchField.lua
+GUI.lua
+Skin.lua
+Item.lua
+Session.lua
+Filter.lua
+Client.lua
+VersionCheck.lua
+
+# DEBUG: Uncomment the line below to enable test commands
+# TestCommands.lua
