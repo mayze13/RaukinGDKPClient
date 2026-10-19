@@ -94,8 +94,8 @@ function Client:Create()
 end
 
 -- Layout of the top of the window (the item list starts below the search row)
-local SEARCH_ROW_Y = -32
-local LIST_Y_OFFSET = -33   -- relative to the AceGUI content top (27px below the frame top)
+local SEARCH_ROW_Y = -42   -- below the title and the Top Spender / opacity row
+local LIST_Y_OFFSET = -43   -- relative to the AceGUI content top (27px below the frame top)
 
 function Client:CreateWindow()
   local window = RaukinGDKP.GUI:CreateWindow("RaukinGDKPClient", nil)
@@ -162,9 +162,17 @@ function Client:CreateWindow()
   end)
   window.activeFilterButton = activeFilterButton
 
-  -- Biggest Spender display (top left, in the title row)
+  -- Top row above the resize grips, and the right-edge grip starts below it, so the
+  -- buttons' whole click boxes stay clickable wherever the window is moved or resized
+  local controlLevel = window.frame:GetFrameLevel() + 6
+  for _, control in ipairs({ searchField, usableFilterButton, watchedFilterButton, activeFilterButton }) do
+    control:SetFrameLevel(controlLevel)
+  end
+  if window.SetRightGripTop then window:SetRightGripTop(SEARCH_ROW_Y - 28) end
+
+  -- Biggest Spender display (top left, on its own row under the title)
   local topSpenderText = window.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  topSpenderText:SetPoint("TOPLEFT", window.frame, "TOPLEFT", 18, -12)
+  topSpenderText:SetPoint("TOPLEFT", window.frame, "TOPLEFT", 18, -22)
   topSpenderText:SetJustifyH("LEFT")
   topSpenderText:SetTextColor(1, 0.84, 0) -- Gold color
   topSpenderText:SetText("")
@@ -191,7 +199,6 @@ function Client:CreateWindow()
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine("Cut per raider: " .. RaukinGDKP.FormatGold(cut))
     GameTooltip:AddLine(string.format("Pot x %d%% / %d", split, divisor), 1, 1, 1, true)
-    GameTooltip:AddLine("Grows with every item that is sold.", 0.7, 0.7, 0.7, true)
     GameTooltip:Show()
   end)
   bar:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -201,7 +208,7 @@ function Client:CreateWindow()
 
   -- ElvUI / AddOnSkins look + opacity slider (top right, left of the X button)
   if RaukinGDKPSkin then
-    RaukinGDKPSkin:Window(window.frame, { sliderPoint = { "TOPRIGHT", -34, -10 }, strip = true })
+    RaukinGDKPSkin:Window(window.frame, { sliderPoint = { "TOPRIGHT", -34, -20 }, strip = true })
     RaukinGDKPSkin:Panel(window.bottomBar)   -- ElvUI / AddOnSkins look for the bottom bar
     RaukinGDKPSkin:EditBox(searchField)
   end

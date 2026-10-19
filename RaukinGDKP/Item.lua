@@ -7,6 +7,12 @@ local setmetatable, tonumber = setmetatable, tonumber
 local C_Item, BItem, GetItemInfo = RaukinGDKPCompat.C_Item, RaukinItem, GetItemInfo
 local C_Timer = RaukinGDKPCompat.C_Timer
 
+-- The host's Mystery box (several BoEs sold as one): sent as this item id. Shown with the
+-- gift's icon but as "Mystery box", and never as a real item (no tooltip, no hyperlink).
+local MYSTERY_BOX_ID = 41426
+local MYSTERY_BOX_NAME = "Mystery box"
+local MYSTERY_BOX_LINK = "|cffa335ee[" .. MYSTERY_BOX_NAME .. "]|r"
+
 local Item = {}
 Item.__index = Item
 RaukinGDKP.Item = Item
@@ -22,7 +28,7 @@ function Item:CreateForId(itemId)
 
   -- GetItemInfo returns nil if the item has not yet been cached
   -- If not cached, we have to load it first before populating properties
-  if C_Item.IsItemDataCachedByID(itemId) then
+  if itemId == MYSTERY_BOX_ID or C_Item.IsItemDataCachedByID(itemId) then
     item:PopulateStaticProperties()
   else
     BItem:CreateFromItemID(itemId):ContinueOnItemLoad(function() item:PopulateStaticProperties() end)
@@ -71,12 +77,18 @@ local ITEM_LOAD_MAX_RETRIES = 5
 local ITEM_LOAD_RETRY_INTERVAL = 0.5  -- seconds between retries
 
 function Item:PopulateStaticProperties()
-  local itemType, itemSubType
+  local itemType, itemSubType, _
   self.name, self.link, self.quality, self.ilvl, self.minLevel, itemType, itemSubType, _, self.equipLoc, self.texture = GetItemInfo(self.id)
 
   -- Convert string types to numeric IDs for filter compatibility
   self.classId = ITEM_CLASS_IDS[itemType]
   self.subclassId = ITEM_SUBCLASS_IDS[itemSubType]
+
+  if self.id == MYSTERY_BOX_ID then
+    self.isMysteryBox = true
+    self.name, self.link, self.quality = MYSTERY_BOX_NAME, MYSTERY_BOX_LINK, 4
+    self.texture = self.texture or GetItemIcon(self.id)
+  end
 
   if not self.name then
     -- Item data not yet available from server

@@ -7,18 +7,27 @@
 local RaukinGDKP = RaukinLibStub("RaukinAceAddon-3.0"):GetAddon("RaukinGDKP")
 
 local math = math
-local RADIUS = 80
 local button
+local dragAngle -- angle while dragging; saved on drag stop
 
 local function GetHost()
   return RaukinLibStub("RaukinAceAddon-3.0"):GetAddon("RaukinGDKPHost", true)
 end
 
+-- On the minimap's edge. The radius follows the minimap's size (ElvUI resizes it), and
+-- square minimaps (ElvUI, GetMinimapShape) put the button on the square's edge.
 local function UpdatePosition()
   if not button then return end
-  local angle = math.rad(RaukinGDKP:GetPref("minimapAngle", 215))
+  local angle = math.rad(dragAngle or RaukinGDKP:GetPref("minimapAngle", 215))
+  local x, y = math.cos(angle), math.sin(angle)
+  local radius = (Minimap:GetWidth() or 140) / 2 + 10
+  if GetMinimapShape and GetMinimapShape() == "SQUARE" then
+    radius = (Minimap:GetWidth() or 140) / 2 + 5
+    local edge = math.max(math.abs(x), math.abs(y))
+    if edge > 0 then x, y = x / edge, y / edge end
+  end
   button:ClearAllPoints()
-  button:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * RADIUS, math.sin(angle) * RADIUS)
+  button:SetPoint("CENTER", Minimap, "CENTER", x * radius, y * radius)
 end
 
 local function OnDragUpdate()
@@ -26,8 +35,7 @@ local function OnDragUpdate()
   local scale = Minimap:GetEffectiveScale()
   local cx, cy = GetCursorPosition()
   cx, cy = cx / scale, cy / scale
-  local angle = math.deg(math.atan2(cy - my, cx - mx))
-  RaukinGDKP:SetPref("minimapAngle", angle)
+  dragAngle = math.deg(math.atan2(cy - my, cx - mx))
   UpdatePosition()
 end
 
@@ -36,7 +44,7 @@ local function CreateButton()
 
   button = CreateFrame("Button", "RaukinGDKPMinimapButton", Minimap)
   button:SetFrameStrata("MEDIUM")
-  button:SetFrameLevel(8)
+  button:SetFrameLevel(Minimap:GetFrameLevel() + 8)   -- above ElvUI's minimap overlays
   button:SetSize(31, 31)
   button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
   button:RegisterForDrag("LeftButton")
@@ -58,7 +66,8 @@ local function CreateButton()
   border:SetSize(53, 53)
   border:SetPoint("TOPLEFT")
 
-  button:SetScript("OnClick", function(_, mouseButton)
+  button:SetScript("OnClick", function(self, mouseButton)
+    if self.dragged then return end   -- releasing a drag never toggles a window
     local host = GetHost()
     if mouseButton == "RightButton" and host and host.ToggleWindow then
       host:ToggleWindow()
@@ -67,12 +76,21 @@ local function CreateButton()
     end
   end)
   button:SetScript("OnDragStart", function(self)
+    self.dragging, self.dragged = true, true
+    GameTooltip:Hide()
     self:SetScript("OnUpdate", OnDragUpdate)
   end)
   button:SetScript("OnDragStop", function(self)
     self:SetScript("OnUpdate", nil)
+    if dragAngle then RaukinGDKP:SetPref("minimapAngle", dragAngle) end
+    dragAngle = nil
+    self.dragging = nil
+    UpdatePosition()
   end)
+  -- OnDragStop can come before OnClick: the drag flag is cleared on the next press
+  button:SetScript("OnMouseDown", function(self) self.dragged = nil end)
   button:SetScript("OnEnter", function(self)
+    if self.dragging then return end
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("RaukinGDKP")
     GameTooltip:AddLine("Left-click: bidding window", 1, 1, 1)

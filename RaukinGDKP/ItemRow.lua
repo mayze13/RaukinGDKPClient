@@ -291,6 +291,11 @@ local methods = {
 
     -- 3.3.5a: SetOwner needs a frame, not a texture
     GameTooltip:SetOwner(self.frame, "ANCHOR_CURSOR")
+    if item.isMysteryBox then   -- the contents are the host's secret: just the name
+      GameTooltip:SetText(item.link)
+      GameTooltip:Show()
+      return
+    end
     GameTooltip:SetHyperlink(item.link)
   end,
 
@@ -314,7 +319,7 @@ local methods = {
     if not IsModifiedClick() then return end
 
     local item = self:GetCurrentItem()
-    if not item or not item.link then return end
+    if not item or not item.link or item.isMysteryBox then return end
 
     -- Handles pasting link to chat frame, dressup, etc.
     SetItemRef(item.link, item.link, button)

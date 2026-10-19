@@ -224,8 +224,7 @@ function GUI:CreateWindow(name, title, defaultWidth)
     frame.raukinSizing = nil
     if mode == "size" and height then
       local rows = math.floor((frame:GetHeight() - window:GetChromeHeight()) / ROW_HEIGHT + 0.5)
-      local newMax = GUI:SetMaxRows(rows)
-      RaukinGDKP:Info(string.format("Window shows up to %d items before scrolling (/rgdkp rows N).", newMax))
+      GUI:SetMaxRows(rows)
     end
     SavePosition()
     window:FitToRows()
@@ -284,6 +283,15 @@ function GUI:CreateWindow(name, title, defaultWidth)
   frame:SetScript("OnMouseUp", StopDrag)
   frame:HookScript("OnHide", StopDrag)
 
+  -- Right-edge resize grip starts `y` below the window top (keeps it off top-row buttons)
+  function window:SetRightGripTop(y)
+    local grip = self.rightGrip
+    if not grip then return end
+    grip:ClearAllPoints()
+    grip:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, y)
+    grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 25)
+  end
+
   -- AceGUI's title bar and resize grips use StartMoving/StartSizing: take them over.
   -- The title bar lets clicks through to the window (which moves it); the grips resize.
   for i = 1, select("#", frame:GetChildren()) do
@@ -293,11 +301,14 @@ function GUI:CreateWindow(name, title, defaultWidth)
       local isBottom = HasPoint(child, "BOTTOMLEFT")                                 -- sizer_s
       local isRight = not isCorner and HasPoint(child, "TOPRIGHT")                   -- sizer_e
       if isRight then
-        -- AceGUI's right-edge grip runs up to the very top corner and swallowed most
-        -- clicks on the X: start it below the title area instead
-        child:ClearAllPoints()
-        child:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -38)
-        child:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 25)
+        -- AceGUI's right-edge grip (25px wide) runs up to the very top corner and swallowed
+        -- clicks on the X and the top-right buttons: a thin strip below the title area instead
+        -- (SetRightGripTop moves it below the caller's own top row)
+        child:SetWidth(10)
+        window.rightGrip = child
+        window:SetRightGripTop(-38)
+      elseif isBottom then
+        child:SetHeight(10) -- thin strip along the bottom edge, under the bottom bar
       end
       if isCorner or isBottom or isRight then
         local w, h = isCorner or isRight, isCorner or isBottom
